@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 diesel = { version = "2.1.0", features = ["postgres"], default-features = false }
 dotenvy = "0.15"
+actix-web = "4"

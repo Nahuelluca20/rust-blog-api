@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate diesel;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
 pub mod models;
 pub mod schema;
@@ -10,81 +11,20 @@ use std::env;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-fn main() {
+#[get("/")]
+async fn hello_word() -> impl Responder {
+    HttpResponse::Ok().body("Hello world!")
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     dotenv().ok();
-
     let db_url: String = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
     let mut connection = PgConnection::establish(&db_url).expect("Error connecting to db");
 
-    use self::models::{NewPost, Post, PostSimplify};
-    use self::schema::posts;
-    use self::schema::posts::dsl::*;
-
-    // let new_post = NewPost {
-    //     title: "secont post",
-    //     body: "this sis a second post",
-    //     slug: "second-post",
-    // };
-
-    // let post: Post = diesel::insert_into(posts::table)
-    //     .values(new_post)
-    //     .get_result(&mut connection)
-    //     .expect("The insertion not found");
-
-    // update post
-    let post_update = diesel::update(posts.filter(id.eq(3)))
-        .set(slug.eq("tercer-post"))
-        .get_result::<Post>(&mut connection)
-        .expect("Error updating post");
-
-    //delete post
-    diesel::delete(posts.filter(id.eq(1)))
-        .execute(&mut connection)
-        .expect("Error en el delete.");
-
-    // Select * from posts
-    println!("Query all posts");
-    let posts_result = posts
-        .load::<Post>(&mut connection)
-        .expect("Error loading posts");
-
-    for post in posts_result {
-        println!("{:?}", post);
-    }
-
-    // Select from post limiy 1
-    println!("Query with limit 1");
-    let posts_result_limit = posts
-        .limit(1)
-        .load::<Post>(&mut connection)
-        .expect("Error loading posts");
-
-    for post in posts_result_limit {
-        println!("post limit 1: {}", post.title);
-    }
-
-    // Select title, body posts limit 1
-    println!("Query with title, body posts limit 1");
-    let posts_result_title_and_body = posts
-        .select((title, body))
-        .limit(1)
-        .load::<PostSimplify>(&mut connection)
-        .expect("Error loading posts");
-
-    for post in posts_result_title_and_body {
-        println!("post 1 title: {} and body: {}", post.title, post.body);
-    }
-
-    // Query with where
-    println!("Query with where");
-    let posts_result_where = posts
-        .filter(slug.eq("primer-post"))
-        .limit(1)
-        .load::<Post>(&mut connection)
-        .expect("Error loading posts");
-
-    for post in posts_result_where {
-        println!("{:?}", post);
-    }
+    HttpServer::new(|| App::new().service(hello_word))
+        .bind(("127.0.0.1", 8080))
+        .unwrap()
+        .run()
+        .await
 }
