@@ -22,9 +22,9 @@ fn main() {
     use self::schema::posts::dsl::*;
 
     let new_post = NewPost {
-        title: "new post",
-        body: "this is a body",
-        slug: "primer-post",
+        title: "secont post",
+        body: "this sis a second post",
+        slug: "second-post",
     };
 
     let post: Post = diesel::insert_into(posts::table)
@@ -37,7 +37,18 @@ fn main() {
         .load::<Post>(&mut connection)
         .expect("Error loading posts");
 
+    // Select * from posts
+    let posts_result_limit = posts.limit(1)
+    .load::<Post>(&mut connection)
+    .expect("Error loading posts");
+
     for post in posts_result {
         println!("{}", post.title);
     }
+
+    for post in posts_result_limit {
+        println!("post limit 1: {}", post.title);
+    }
+
+
 }
