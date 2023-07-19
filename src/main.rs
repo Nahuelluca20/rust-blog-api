@@ -14,9 +14,23 @@ use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::Pool;
 
+use self::models::Post;
+use self::schema::posts;
+use self::schema::posts::dsl::*;
+
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
 #[get("/")]
-async fn hello_world() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
+async fn index(pool: web::Data<DbPool>) -> impl Responder {
+    let mut conn = pool.get().expect("couldn't get db connection from pool");
+
+    match web::block(move || posts.load::<Post>(&mut conn)).await {
+        Ok(data) => {
+            println!("{:?}", data);
+            HttpResponse::Ok().body("Get data")
+        }
+        Err(err) => HttpResponse::Ok().body("Error"),
+    }
 }
 
 #[actix_web::main]
@@ -32,8 +46,8 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-        .service(hello_world)
-        .app_data(web::Data::new(pool.clone()))
+            .service(index)
+            .app_data(web::Data::new(pool.clone()))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
