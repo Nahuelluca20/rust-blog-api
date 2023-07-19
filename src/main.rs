@@ -14,7 +14,7 @@ use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::Pool;
 
-use self::models::Post;
+use self::models::{NewPost, NewPostHandler, Post};
 use self::schema::posts;
 use self::schema::posts::dsl::*;
 
@@ -27,7 +27,20 @@ async fn index(pool: web::Data<DbPool>) -> impl Responder {
     match web::block(move || posts.load::<Post>(&mut conn)).await {
         Ok(data) => {
             println!("{:?}", data);
-            HttpResponse::Ok().body("Get data")
+            HttpResponse::Ok().body(format!("{:?}", data))
+        }
+        Err(err) => HttpResponse::Ok().body("Error"),
+    }
+}
+
+#[post("/new_post")]
+async fn new_post(pool: web::Data<DbPool>, item: web::Json<NewPostHandler>) -> impl Responder {
+    let mut conn = pool.get().expect("couldn't get db connection from pool");
+
+    match web::block(move || Post::create_post(&mut conn, item.into_inner())).await {
+        Ok(data) => {
+            println!("{:?}", data);
+            HttpResponse::Ok().body(format!("{:?}", data))
         }
         Err(err) => HttpResponse::Ok().body("Error"),
     }
@@ -47,6 +60,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .service(index)
+            .service(new_post)
             .app_data(web::Data::new(pool.clone()))
     })
     .bind(("127.0.0.1", 8080))?
